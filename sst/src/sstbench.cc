@@ -13,47 +13,6 @@
 #include "sstbench.h"
 
 static auto CLOCK = "1GHz";
-// static auto BASE_LATENCY = "1ns";
-
-MergeElements::MergeElements(SST::ComponentId_t id, SST::Params &params) : SST::Component(id), repeats(0)
-{
-
-	output.init("MergeElements-" + getName() + "-> ", 1, 0, SST::Output::STDOUT);
-
-	maxRepeats = params.find<SST::Cycle_t>("repeats", 10);
-
-	output.verbose(CALL_INFO, 1, 0, "Config: maxRepeats=%" PRIu64 "\n",
-				   static_cast<uint64_t>(maxRepeats));
-
-	// Just register a plain clock for this simple example
-
-	this->output_link.link = configureLink("output_link", new SST::Event::Handler<MergeElements>(this, &MergeElements::response_handler));
-	sst_assert(this->output_link.link, CALL_INFO, -1, "Error in %s: Failed to setup output link!", getName().c_str());
-	this->output_link.capacity = params.find<uint32_t>("capacity", 10);
-
-	this->input_a = configureLink("inputA", new SST::Event::Handler<MergeElements>(this, &MergeElements::inputAhandler));
-	sst_assert(this->input_a, CALL_INFO, -1, "Error in %s: Link configuration failed A\n", getName().c_str());
-	this->input_b = configureLink("inputB", new SST::Event::Handler<MergeElements>(this, &MergeElements::inputBHandler));
-	sst_assert(this->input_b, CALL_INFO, -1, "Error in %s: Link configuration failed B\n", getName().c_str());
-
-	// Tell SST to wait until we authorize it to exit
-	registerAsPrimaryComponent();
-	primaryComponentDoNotEndSim();
-}
-
-MergeElements::~MergeElements()
-{
-}
-
-void MergeElements::setup()
-{
-	output.verbose(CALL_INFO, 1, 0, "Component is being setup.\n");
-}
-
-void MergeElements::finish()
-{
-	output.verbose(CALL_INFO, 1, 0, "Component is being finished.\n");
-}
 
 SumElements::SumElements(SST::ComponentId_t id, SST::Params &params) : SST::Component(id), repeats(0)
 {
@@ -164,6 +123,7 @@ Checker::Checker(SST::ComponentId_t id, SST::Params &params) : SST::Component(id
 
 	this->input_link = configureLink("input_link", new SST::Event::Handler<Checker>(this, &Checker::handleEvent));
 	sst_assert(this->input_link, CALL_INFO, -1, "Error in %s: Failed to setup input link!", getName().c_str());
+	maxRepeats = params.find<SST::Cycle_t>("repeats", 10);
 	// Tell SST to wait until we authorize it to exit
 	registerAsPrimaryComponent();
 	primaryComponentDoNotEndSim();

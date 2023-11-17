@@ -20,20 +20,19 @@
 
 #include "../../common/workloads.h"
 
+#define EVENT_PAYLOAD_BYTES 32
 
 class SimData : public SST::Event
 {
 public:
-	SimData() : SST::Event() {
-		for (i = 0 ; i)
-	}
+	SimData() : SST::Event() {}
 	void serialize_order(SST::Core::Serialization::serializer &ser) override
 	{
 		Event::serialize_order(ser);
 		ser &data;
 	}
 
-	uint8_t[EVENT_PAYLOAD_BYTES] data;
+	uint64_t data;
 
 	ImplementSerializable(SimData);
 };
@@ -62,113 +61,6 @@ public:
 
 private:
 	uint64_t send_receive_delta = 0;
-};
-
-class MergeElements : public SST::Component
-{
-
-public:
-	MergeElements(SST::ComponentId_t id, SST::Params &params);
-	~MergeElements();
-
-	void setup();
-	void finish();
-
-	void response_handler(SST::Event *event)
-	{
-		bool was_backpressured = output_link.is_full() && !a_buffer.empty() && !b_buffer.empty();
-		if (was_backpressured)
-		{
-			push_next_output();
-			delete event;
-		}
-		else
-		{
-			output_link.recv_handler(event);
-		}
-	}
-
-	void inputAhandler(SST::Event *event)
-	{
-		if (auto evt = dynamic_cast<SimData *>(event))
-		{
-			a_buffer.push_back(evt->data);
-			if (!(output_link.is_full() || b_buffer.empty()))
-			{
-				push_next_output();
-			}
-		}
-		delete event;
-	}
-	void inputBHandler(SST::Event *event)
-	{
-		if (auto evt = dynamic_cast<SimData *>(event))
-		{
-			b_buffer.push_back(evt->data);
-			if (!(output_link.is_full() || a_buffer.empty()))
-			{
-				push_next_output();
-			}
-		}
-		delete event;
-	}
-
-	SST_ELI_REGISTER_COMPONENT(
-		MergeElements,
-		"mergeElements",
-		"MergeElements",
-		SST_ELI_ELEMENT_VERSION(1, 0, 0),
-		"Demonstration of an External Element for SST",
-		COMPONENT_CATEGORY_PROCESSOR)
-
-	SST_ELI_DOCUMENT_PORTS(
-		{"inputA", "Link to another component", {"mergeElements.SimData", ""}},
-		{"inputB", "", {"mergeElements.SimData", ""}},
-		{"output_link", "", {"mergeElements.SimData", ""}})
-
-private:
-	void push_next_output()
-	{
-		// output.verbose(CALL_INFO, 1, 0, "Pushing Output\n");
-		int32_t a = a_buffer.front();
-		int32_t b = b_buffer.front();
-		int32_t minimum = std::min(a, b);
-		if (a == minimum)
-		{
-			// output.verbose(CALL_INFO, 1, 0, "Ack A\n");
-			a_buffer.pop_front();
-			input_a->send(new SimData);
-		}
-		if (b == minimum)
-		{
-			// output.verbose(CALL_INFO, 1, 0, "Ack B\n");
-			b_buffer.pop_front();
-			input_b->send(new SimData);
-		}
-
-		auto evt = new SimData;
-		do_work(1 << 20);
-		evt->data = minimum;
-		output_link.send(evt);
-		// output.verbose(CALL_INFO, 1, 0, "Finished Send\n");
-
-		if (minimum == INT32_MAX)
-		{
-			primaryComponentOKToEndSim();
-		}
-	}
-
-	SST::Output output;
-	SST::Cycle_t maxRepeats;
-	SST::Cycle_t repeats;
-
-	SST::Link *input_a;
-	SST::Link *input_b;
-
-	std::deque<int32_t> a_buffer;
-	std::deque<int32_t> b_buffer;
-
-	Sender output_link;
 };
 
 class SumElements : public SST::Component
@@ -244,24 +136,24 @@ private:
 		auto res = a + b;
 
 		auto evt = new SimData;
-		if (a == INT32_MAX || b == INT32_MAX)
-		{
-			evt->data = INT32_MAX;
-		}
-		else
-		{
-			evt->data = res;
-		}
+		evt->data = res + compute_fibonacci(this->fib_repeats);
 
 		output_link.send(evt);
 		input_a->send(new SimData);
 		input_b->send(new SimData);
-		primaryComponentOKToEndSim();
+
+
+		this->repeats++;
+		if (this->repeats == this->maxRepeats) {
+			primaryComponentOKToEndSim();
+		}
 	}
 
 	SST::Output output;
 	SST::Cycle_t maxRepeats;
 	SST::Cycle_t repeats;
+
+	uint64_t fib_repeats;
 
 	SST::Link *input_a;
 	SST::Link *input_b;
@@ -326,8 +218,9 @@ public:
 	{
 		if (auto evt = dynamic_cast<SimData *>(event))
 		{
+			this->repeats++;
 			// output.verbose(CALL_INFO, 1, 0, "Checker received: %d.\n", evt->data);
-			if (evt->data == INT32_MAX)
+			if (this->repeats == this->maxRepeats)
 			{
 				primaryComponentOKToEndSim();
 			}
@@ -349,6 +242,8 @@ public:
 private:
 	SST::Output output;
 	SST::Link *input_link;
+	uint64_t repeats;
+	uint64_t maxRepeats;
 };
 
 
