@@ -1,0 +1,15 @@
+[package]
+name = "dam-compare"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "4.4.8"
+dam = {version = "0.1.0", features=["dot"], default-features=false, git = "https://github.com/stanford-ppl/DAM-RS.git", branch="dev"}
+cxx = "1.0.110"
+
+
+[build-dependencies]
+cxx-build = "1.0.110"

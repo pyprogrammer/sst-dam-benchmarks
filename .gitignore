@@ -1,0 +1,6 @@
+.vscode/
+src/*.so
+tests/__pycache__/
+.clangd
+dam/Cargo.lock
+dam/target/*
