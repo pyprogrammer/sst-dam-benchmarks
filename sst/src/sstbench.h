@@ -9,8 +9,8 @@
 // information, see the LICENSE file in the top level directory of the
 // distribution.
 
-#ifndef _SIMPLE_EXTERNAL_ELEMENT_H
-#define _SIMPLE_EXTERNAL_ELEMENT_H
+#ifndef _SST_BENCH_H
+#define _SST_BENCH_H
 
 #include <sst/core/component.h>
 #include <sst/core/eli/elementinfo.h>
@@ -19,8 +19,6 @@
 #include <deque>
 
 #include "../../common/workloads.h"
-
-#define EVENT_PAYLOAD_BYTES 32
 
 class SimData : public SST::Event
 {
@@ -63,12 +61,12 @@ private:
 	uint64_t send_receive_delta = 0;
 };
 
-class SumElements : public SST::Component
+class SumWithFibonacci : public SST::Component
 {
 
 public:
-	SumElements(SST::ComponentId_t id, SST::Params &params);
-	~SumElements();
+	SumWithFibonacci(SST::ComponentId_t id, SST::Params &params);
+	~SumWithFibonacci();
 
 	void setup();
 	void finish();
@@ -113,17 +111,24 @@ public:
 	}
 
 	SST_ELI_REGISTER_COMPONENT(
-		SumElements,
-		"mergeElements",
-		"SumElements",
+		SumWithFibonacci,
+		"sstbench",
+		"SumWithFibonacci",
 		SST_ELI_ELEMENT_VERSION(1, 0, 0),
 		"Demonstration of an External Element for SST",
 		COMPONENT_CATEGORY_PROCESSOR)
 
 	SST_ELI_DOCUMENT_PORTS(
-		{"inputA", "Link to another component", {"mergeElements.SimData", ""}},
-		{"inputB", "", {"mergeElements.SimData", ""}},
-		{"output_link", "", {"mergeElements.SimData", ""}})
+		{"inputA", "Link to another component", {"sstbench.SimData", ""}},
+		{"inputB", "", {"sstbench.SimData", ""}},
+		{"output_link", "", {"sstbench.SimData", ""}})
+
+
+	SST_ELI_DOCUMENT_PARAMS(
+		{"repeats", "Number of repetitions to make", "10"},
+		{"depth", "Channel Depth", "10"},
+		{"fib", "Fibonacci number", "10"}
+	)
 
 private:
 	void push_next_output()
@@ -182,14 +187,14 @@ public:
 
 	SST_ELI_REGISTER_COMPONENT(
 		SignalGenerator,
-		"mergeElements",
+		"sstbench",
 		"SignalGenerator",
 		SST_ELI_ELEMENT_VERSION(1, 0, 0),
 		"SignalGenerator",
 		COMPONENT_CATEGORY_PROCESSOR)
 
 	SST_ELI_DOCUMENT_PORTS(
-		{"output_link", "Link to another component", {"mergeElements.SimData", ""}})
+		{"output_link", "Link to another component", {"sstbench.SimData", ""}})
 
 private:
 	SST::Output output;
@@ -230,14 +235,14 @@ public:
 
 	SST_ELI_REGISTER_COMPONENT(
 		Checker,
-		"mergeElements",
+		"sstbench",
 		"Checker",
 		SST_ELI_ELEMENT_VERSION(1, 0, 0),
 		"Checker",
 		COMPONENT_CATEGORY_PROCESSOR)
 
 	SST_ELI_DOCUMENT_PORTS(
-		{"input_link", "Link to another component", {"mergeElements.SimData", ""}})
+		{"input_link", "Link to another component", {"sstbench.SimData", ""}})
 
 private:
 	SST::Output output;
@@ -246,5 +251,38 @@ private:
 	uint64_t maxRepeats;
 };
 
+
+class SimpleExternalElement : public SST::Component {
+
+public:
+	SimpleExternalElement( SST::ComponentId_t id, SST::Params& params );
+	~SimpleExternalElement();
+
+	void setup();
+	void finish();
+
+	bool clockTick( SST::Cycle_t currentCycle );
+
+	SST_ELI_REGISTER_COMPONENT(
+		SimpleExternalElement,
+		"sstbench",
+		"SimpleExternalElement",
+		SST_ELI_ELEMENT_VERSION( 1, 0, 0 ),
+		"Demonstration of an External Element for SST",
+		COMPONENT_CATEGORY_PROCESSOR
+	)
+
+	SST_ELI_DOCUMENT_PARAMS(
+		{ "printFrequency", "How frequently to print a message from the component", "5" },
+		{ "repeats", "Number of repetitions to make", "10" }
+	)
+
+private:
+	SST::Output output;
+	SST::Cycle_t printFreq;
+	SST::Cycle_t maxRepeats;
+	SST::Cycle_t repeats;
+
+};
 
 #endif
