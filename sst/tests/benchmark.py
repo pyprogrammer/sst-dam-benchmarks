@@ -39,7 +39,11 @@ for tree_ind in range(args.num_trees):
         pairs = zip(input_streams[::2], input_streams[1::2])
         for i, j in pairs:
             adder = sst.Component(f"sum_{next(node_counter)}", "sstbench.SumWithFibonacci")
-            adder.addParams({"capacity": args.channel_depth, "fib": args.fib_size + args.imbalance if tree_ind == 0 else args.fib_size, "repeats": args.iters})
+            if tree_ind == 0:
+                fib_size = args.fib_size + args.imbalance
+            else:
+                fib_size = args.fib_size
+            adder.addParams({"capacity": args.channel_depth, "fib": fib_size, "repeats": args.iters})
             link = sst.Link(f"link_{next(link_counter)}")
             link.connect((i, "output_link", args.latency), (adder, "inputA", args.latency))
 
