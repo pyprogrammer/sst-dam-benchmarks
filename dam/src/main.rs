@@ -39,6 +39,9 @@ struct Args {
 
     #[arg(long)]
     fifo_mode: bool,
+
+    #[arg(long)]
+    imbalance: u64,
 }
 
 #[context_macro]
@@ -89,46 +92,61 @@ impl SumWithFibContext {
 
 fn main() {
     let args = Args::parse();
-    let mut program = ProgramBuilder::default();
-    for _ in 0..args.num_trees {
-        let mut inputs = vec![];
 
-        // populate previous layer with producers
-        inputs.resize_with(1 << args.depth, || {
-            let (snd, rcv) = program.bounded_with_latency(args.channel_depth, args.latency, 1);
-            program.add_child(GeneratorContext::new(|| 0..args.iters, snd));
-            rcv
-        });
-
-        while inputs.len() > 1 {
-            let left = inputs.pop().unwrap();
-            let right = inputs.pop().unwrap();
-            let (out, out_rcv) = program.bounded_with_latency(args.channel_depth, args.latency, 1);
-
-            program.add_child(SumWithFibContext::new(left, right, out, args.fib_size));
-
-            inputs.push(out_rcv);
-        }
-
-        program.add_child(ConsumerContext::new(inputs.pop().unwrap()));
-    }
-    let exec = program
-        .initialize(
-            InitializationOptionsBuilder::default()
-                .run_flavor_inference(args.opt)
-                .build()
-                .unwrap(),
-        )
-        .unwrap()
-        .run(
-            RunOptionsBuilder::default()
-                .mode(if args.fifo_mode {
-                    RunMode::FIFO
+    std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(move || {
+            let mut program = ProgramBuilder::default();
+            for i in 0..args.num_trees {
+                let mut inputs = vec![];
+                let fib_size = if i == 0 {
+                    args.imbalance + args.fib_size
                 } else {
-                    RunMode::Simple
-                })
-                .build()
-                .unwrap(),
-        );
-    println!("Elapsed: {:?}", exec.elapsed_cycles());
+                    args.fib_size
+                };
+
+                // populate previous layer with producers
+                inputs.resize_with(1 << args.depth, || {
+                    let (snd, rcv) =
+                        program.bounded_with_latency(args.channel_depth, args.latency, 1);
+                    program.add_child(GeneratorContext::new(|| 0..args.iters, snd));
+                    rcv
+                });
+
+                while inputs.len() > 1 {
+                    let left = inputs.pop().unwrap();
+                    let right = inputs.pop().unwrap();
+                    let (out, out_rcv) =
+                        program.bounded_with_latency(args.channel_depth, args.latency, 1);
+
+                    program.add_child(SumWithFibContext::new(left, right, out, fib_size));
+
+                    inputs.push(out_rcv);
+                }
+
+                program.add_child(ConsumerContext::new(inputs.pop().unwrap()));
+            }
+            let exec = program
+                .initialize(
+                    InitializationOptionsBuilder::default()
+                        .run_flavor_inference(args.opt)
+                        .build()
+                        .unwrap(),
+                )
+                .unwrap()
+                .run(
+                    RunOptionsBuilder::default()
+                        .mode(if args.fifo_mode {
+                            RunMode::FIFO
+                        } else {
+                            RunMode::Simple
+                        })
+                        .build()
+                        .unwrap(),
+                );
+            println!("Elapsed: {:?}", exec.elapsed_cycles());
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

@@ -16,6 +16,7 @@ parser.add_argument("--depth", type=int)
 parser.add_argument("--num-trees", type=int)
 parser.add_argument("--latency", type=str)
 parser.add_argument("--channel-depth", type=int)
+parser.add_argument("--imbalance", type=int, default=1)  # How much to multiply the fibonacci factor for the first tree.
 
 args = parser.parse_args(sys.argv[1:])
 
@@ -26,7 +27,7 @@ print(args)
 
 width = 2**args.depth
 
-for _ in range(args.num_trees):
+for tree_ind in range(args.num_trees):
     input_streams = [
         sst.Component(f"signal_{next(node_counter)}", "sstbench.SignalGenerator") for _ in range(width)
     ]
@@ -38,7 +39,7 @@ for _ in range(args.num_trees):
         pairs = zip(input_streams[::2], input_streams[1::2])
         for i, j in pairs:
             adder = sst.Component(f"sum_{next(node_counter)}", "sstbench.SumWithFibonacci")
-            adder.addParams({"capacity": args.channel_depth, "fib": args.fib_size, "repeats": args.iters})
+            adder.addParams({"capacity": args.channel_depth, "fib": args.fib_size + args.imbalance if tree_ind == 0 else args.fib_size, "repeats": args.iters})
             link = sst.Link(f"link_{next(link_counter)}")
             link.connect((i, "output_link", args.latency), (adder, "inputA", args.latency))
 

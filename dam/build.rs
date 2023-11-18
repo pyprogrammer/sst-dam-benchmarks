@@ -10,7 +10,7 @@ fn main() {
     cxx_build::bridge("src/main.rs")
         .file(path.join("workloads.h"))
         .flag_if_supported("-std=c++14")
-        .flag("-O2")
+        .flag("-O3")
         .compile("bindings");
 
     println!("cargo:rerun-if-changed=src/main.rs");
