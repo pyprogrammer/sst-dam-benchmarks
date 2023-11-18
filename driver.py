@@ -71,10 +71,14 @@ if __name__ == "__main__":
 
     for (iters, fib, trees, imba, depth) in itertools.product(num_iters, fib_size, num_trees, imbalance, depths):
         for _ in range(repeats):
-            sst_results[(iters, fib, trees, imba, depth)].append(parse_output(run_sst(multiprocessing.cpu_count(), fib, iters, depth, trees, 1, 1024, imba)))
+            sst_result = parse_output(run_sst(multiprocessing.cpu_count(), fib, iters, depth, trees, 1, 1024, imba))
+            print("SST Result", sst_result)
+            sst_results[(iters, fib, trees, imba, depth)].append(sst_result)
 
         for _ in range(repeats):
-            dam_results[(iters, fib, trees, imba, depth)].append(parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, False)))
+            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, False))
+            print("DAM Result:", dam_result)
+            dam_results[(iters, fib, trees, imba, depth)].append(dam_result)
 
     # sst_result = run_sst(20, 10, 1000, 10, 20, 1, 1024, 3)
     # dam_result1 = run_dam(20, 10, 1000, 10, 20, 1, 1024, 3, False)
