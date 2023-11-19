@@ -57,7 +57,7 @@ def parse_output(job: subprocess.CompletedProcess):
     return seconds
 
 # Sweep space
-num_iters = [10000]
+num_iters = [100000]
 fib_size = [16, 20]
 num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))))
 imbalance = [0, 4]
@@ -72,11 +72,12 @@ if __name__ == "__main__":
     dam_opt = collections.defaultdict(list)
 
     repeats = 1
+    chan_depth = 4096
 
     for (iters, fib, trees, imba, depth) in itertools.product(num_iters, fib_size, num_trees, imbalance, depths):
         
         for _ in range(repeats):
-            sst_result = parse_output(run_sst(multiprocessing.cpu_count(), fib, iters, depth, trees, 1, 1024, imba))
+            sst_result = parse_output(run_sst(multiprocessing.cpu_count(), fib, iters, depth, trees, 1, chan_depth, imba))
             print("SST Result", sst_result)
             sst_results[(iters, fib, trees, imba, depth)].append(sst_result)
         
@@ -84,16 +85,16 @@ if __name__ == "__main__":
             pickle.dump(sst_results, pkl)
 
         for _ in range(repeats):
-            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, True, False))
-            print("DAM Result:", dam_result)
+            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, chan_depth, imba, True, False))
+            print("DAM No-Opt:", dam_result)
             dam_no_opt[(iters, fib, trees, imba, depth)].append(dam_result)
 
         with open("dam_noopt_results.pkl", "wb") as pkl:
             pickle.dump(sst_results, pkl)
 
         for _ in range(repeats):
-            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, True, True))
-            print("DAM Result:", dam_result)
+            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, chan_depth, imba, True, True))
+            print("DAM Opt:", dam_result)
             dam_opt[(iters, fib, trees, imba, depth)].append(dam_result)
         
         with open("dam_opt_results.pkl", "wb") as pkl:
