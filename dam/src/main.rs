@@ -28,11 +28,12 @@ struct Args {
 
     #[arg(long)]
     num_trees: usize,
+
     #[arg(long)]
     latency: u64,
 
     #[arg(long)]
-    channel_depth: usize,
+    channel_depth: Option<usize>,
 
     #[arg(long)]
     opt: bool,
@@ -40,7 +41,7 @@ struct Args {
     #[arg(long)]
     fifo_mode: bool,
 
-    #[arg(long)]
+    #[arg(long, default_value_t = 0)]
     imbalance: u64,
 }
 
@@ -93,60 +94,56 @@ impl SumWithFibContext {
 fn main() {
     let args = Args::parse();
 
-    std::thread::Builder::new()
-        .stack_size(64 * 1024 * 1024)
-        .spawn(move || {
-            let mut program = ProgramBuilder::default();
-            for i in 0..args.num_trees {
-                let mut inputs = vec![];
-                let fib_size = if i == 0 {
-                    args.imbalance + args.fib_size
-                } else {
-                    args.fib_size
-                };
+    let mut program = ProgramBuilder::default();
+    let mk_channel = |pb: &mut ProgramBuilder| match args.channel_depth {
+        Some(d) => pb.bounded_with_latency(d, args.latency, 1),
+        None => pb.unbounded_with_latency(args.latency, 1),
+    };
 
-                // populate previous layer with producers
-                inputs.resize_with(1 << args.depth, || {
-                    let (snd, rcv) =
-                        program.bounded_with_latency(args.channel_depth, args.latency, 1);
-                    program.add_child(GeneratorContext::new(|| 0..args.iters, snd));
-                    rcv
-                });
+    for i in 0..args.num_trees {
+        let mut inputs = vec![];
+        let fib_size = if i == 0 {
+            args.imbalance + args.fib_size
+        } else {
+            args.fib_size
+        };
 
-                while inputs.len() > 1 {
-                    let left = inputs.pop().unwrap();
-                    let right = inputs.pop().unwrap();
-                    let (out, out_rcv) =
-                        program.bounded_with_latency(args.channel_depth, args.latency, 1);
+        // populate previous layer with producers
+        inputs.resize_with(1 << args.depth, || {
+            let (snd, rcv) = mk_channel(&mut program);
+            program.add_child(GeneratorContext::new(|| 0..args.iters, snd));
+            rcv
+        });
 
-                    program.add_child(SumWithFibContext::new(left, right, out, fib_size));
+        while inputs.len() > 1 {
+            let left = inputs.pop().unwrap();
+            let right = inputs.pop().unwrap();
+            let (out, out_rcv) = mk_channel(&mut program);
 
-                    inputs.push(out_rcv);
-                }
+            program.add_child(SumWithFibContext::new(left, right, out, fib_size));
 
-                program.add_child(ConsumerContext::new(inputs.pop().unwrap()));
-            }
-            let exec = program
-                .initialize(
-                    InitializationOptionsBuilder::default()
-                        .run_flavor_inference(args.opt)
-                        .build()
-                        .unwrap(),
-                )
-                .unwrap()
-                .run(
-                    RunOptionsBuilder::default()
-                        .mode(if args.fifo_mode {
-                            RunMode::FIFO
-                        } else {
-                            RunMode::Simple
-                        })
-                        .build()
-                        .unwrap(),
-                );
-            println!("Elapsed: {:?}", exec.elapsed_cycles());
-        })
+            inputs.push(out_rcv);
+        }
+
+        program.add_child(ConsumerContext::new(inputs.pop().unwrap()));
+    }
+    let exec = program
+        .initialize(
+            InitializationOptionsBuilder::default()
+                .run_flavor_inference(args.opt)
+                .build()
+                .unwrap(),
+        )
         .unwrap()
-        .join()
-        .unwrap();
+        .run(
+            RunOptionsBuilder::default()
+                .mode(if args.fifo_mode {
+                    RunMode::FIFO
+                } else {
+                    RunMode::Simple
+                })
+                .build()
+                .unwrap(),
+        );
+    println!("Elapsed: {:?}", exec.elapsed_cycles());
 }

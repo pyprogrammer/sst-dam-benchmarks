@@ -41,13 +41,16 @@ def run_sst(threads: int, fib_size: int, iters: int, depth: int, trees: int, lat
     job = subprocess.run(cmd, capture_output=True, cwd=sst_path.joinpath("tests"))
     return job
 
-def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, chan_depth: int, imbalance: int, fifo: bool, opt: bool):
+def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, chan_depth: int | None, imbalance: int, fifo: bool, opt: bool):
     cmd = ["/usr/bin/time", "-f", "%e", "target/release/dam-compare", f"--fib-size={fib_size}", f"--iters={iters}", f"--depth={depth}",
-                          f"--num-trees={trees}", f"--latency={latency}", f"--channel-depth={chan_depth}", f"--imbalance={imbalance}"]
+                          f"--num-trees={trees}", f"--latency={latency}", f"--imbalance={imbalance}"]
     if fifo:
         cmd.append("--fifo-mode")
     if opt:
         cmd.append("--opt")
+    if chan_depth:
+        cmd.append(f"--channel-depth={chan_depth}")
+
     print(" ".join(cmd))
     job = subprocess.run(cmd, capture_output=True, cwd=dam_path)
     return job
