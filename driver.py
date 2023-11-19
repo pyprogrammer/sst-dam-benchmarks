@@ -62,7 +62,9 @@ def parse_output(job: subprocess.CompletedProcess):
 # Sweep space
 num_iters = [100000]
 fib_size = [16, 20]
-num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))))
+
+# step in chunks of 4
+num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))), 2)
 imbalance = [0, 4]
 depths = [10, 12]
 
