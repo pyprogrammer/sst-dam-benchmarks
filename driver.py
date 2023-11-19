@@ -64,7 +64,7 @@ num_iters = [100000]
 fib_size = [16, 20]
 num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))))
 imbalance = [0, 4]
-depths = [10, 11]
+depths = [10, 12]
 
 if __name__ == "__main__":
     setup_sst()
