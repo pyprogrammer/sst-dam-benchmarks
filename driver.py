@@ -71,8 +71,10 @@ if __name__ == "__main__":
     setup_dam()
     
     sst_results = collections.defaultdict(list)
-    dam_no_opt = collections.defaultdict(list)
-    dam_opt = collections.defaultdict(list)
+
+    dam_opts = list(itertools.product([True, False], repeat=2))
+
+    dam_results = {opt: collections.defaultdict(list) for opt in dam_opts}
 
     repeats = 1
     chan_depth = 4096
@@ -86,19 +88,12 @@ if __name__ == "__main__":
         
         with open("sst_results.pkl", "wb") as pkl:
             pickle.dump(sst_results, pkl)
-
-        for _ in range(repeats):
-            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, chan_depth, imba, True, False))
-            print("DAM No-Opt:", dam_result)
-            dam_no_opt[(iters, fib, trees, imba, depth)].append(dam_result)
-
-        with open("dam_noopt_results.pkl", "wb") as pkl:
-            pickle.dump(sst_results, pkl)
-
-        for _ in range(repeats):
-            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, chan_depth, imba, True, True))
-            print("DAM Opt:", dam_result)
-            dam_opt[(iters, fib, trees, imba, depth)].append(dam_result)
         
-        with open("dam_opt_results.pkl", "wb") as pkl:
-            pickle.dump(sst_results, pkl)
+        for (use_fifo, chan_opt) in dam_opts:
+            for _ in range(repeats):
+                dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, chan_depth, imba, use_fifo, chan_opt))
+                print("DAM", use_fifo, chan_opt, dam_result)
+                dam_results[(use_fifo, chan_opt)][(iters, fib, trees, imba, depth)].append(dam_result)
+            
+            with open("dam_results.pkl", "wb") as pkl:
+                pickle.dump(dam_results, pkl)
