@@ -127,23 +127,27 @@ fn main() {
 
         program.add_child(ConsumerContext::new(inputs.pop().unwrap()));
     }
-    let exec = program
+
+    let start = std::time::Instant::now();
+    let initialized = program
         .initialize(
             InitializationOptionsBuilder::default()
                 .run_flavor_inference(args.opt)
                 .build()
                 .unwrap(),
         )
-        .unwrap()
-        .run(
-            RunOptionsBuilder::default()
-                .mode(if args.fifo_mode {
-                    RunMode::FIFO
-                } else {
-                    RunMode::Simple
-                })
-                .build()
-                .unwrap(),
-        );
+        .unwrap();
+    let init_time = start.elapsed();
+    println!("Setup Time: {:?}", init_time);
+    let exec = initialized.run(
+        RunOptionsBuilder::default()
+            .mode(if args.fifo_mode {
+                RunMode::FIFO
+            } else {
+                RunMode::Simple
+            })
+            .build()
+            .unwrap(),
+    );
     println!("Elapsed: {:?}", exec.elapsed_cycles());
 }
