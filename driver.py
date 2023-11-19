@@ -38,7 +38,7 @@ def run_sst(threads: int, fib_size: int, iters: int, depth: int, trees: int, lat
     cmd = ["/usr/bin/time", "-f", "%e", "sst", "benchmark.py", f"-n {threads}", "--", f"--fib-size={fib_size}", f"--iters={iters}", f"--depth={depth}",
                           f"--num-trees={trees}", f"--latency={latency}ns", f"--channel-depth={chan_depth}", f"--imbalance={imbalance}"]
     print(" ".join(cmd))
-    job = subprocess.run(cmd, capture_output=True, cwd=sst_path.joinpath("tests"))
+    job = subprocess.run(cmd, capture_output=True, cwd=sst_path.joinpath("tests"), check=True)
     return job
 
 def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, chan_depth: int | None, imbalance: int, fifo: bool, opt: bool):
@@ -52,7 +52,7 @@ def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, cha
         cmd.append(f"--channel-depth={chan_depth}")
 
     print(" ".join(cmd))
-    job = subprocess.run(cmd, capture_output=True, cwd=dam_path)
+    job = subprocess.run(cmd, capture_output=True, cwd=dam_path, check=True)
     return job
 
 def parse_output(job: subprocess.CompletedProcess):
