@@ -6,3 +6,4 @@ dam/Cargo.lock
 dam/target/*
 *.o
 *.so
+*.ipynb

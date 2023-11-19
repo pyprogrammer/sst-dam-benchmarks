@@ -1,4 +1,5 @@
 import multiprocessing
+import pickle
 import subprocess
 import pathlib
 import matplotlib
@@ -40,11 +41,13 @@ def run_sst(threads: int, fib_size: int, iters: int, depth: int, trees: int, lat
     job = subprocess.run(cmd, capture_output=True, cwd=sst_path.joinpath("tests"))
     return job
 
-def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, chan_depth: int, imbalance: int, fifo: bool):
+def run_dam(fib_size: int, iters: int, depth: int, trees: int, latency: int, chan_depth: int, imbalance: int, fifo: bool, opt: bool):
     cmd = ["/usr/bin/time", "-f", "%e", "target/release/dam-compare", f"--fib-size={fib_size}", f"--iters={iters}", f"--depth={depth}",
                           f"--num-trees={trees}", f"--latency={latency}", f"--channel-depth={chan_depth}", f"--imbalance={imbalance}"]
     if fifo:
         cmd.append("--fifo-mode")
+    if opt:
+        cmd.append("--opt")
     print(" ".join(cmd))
     job = subprocess.run(cmd, capture_output=True, cwd=dam_path)
     return job
@@ -54,32 +57,44 @@ def parse_output(job: subprocess.CompletedProcess):
     return seconds
 
 # Sweep space
-num_iters = [100000]
-fib_size = [10, 12, 14]
-num_trees = [1, 10, multiprocessing.cpu_count()]
-imbalance = [0, 1, 2, 3, 4]
-depths = [10, 11, 12]
+num_iters = [10000]
+fib_size = [16, 20]
+num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))))
+imbalance = [0, 4]
+depths = [10, 11]
 
 if __name__ == "__main__":
     setup_sst()
     setup_dam()
     
     sst_results = collections.defaultdict(list)
-    dam_results = collections.defaultdict(list)
+    dam_no_opt = collections.defaultdict(list)
+    dam_opt = collections.defaultdict(list)
 
-    repeats = 5
+    repeats = 1
 
     for (iters, fib, trees, imba, depth) in itertools.product(num_iters, fib_size, num_trees, imbalance, depths):
+        
         for _ in range(repeats):
             sst_result = parse_output(run_sst(multiprocessing.cpu_count(), fib, iters, depth, trees, 1, 1024, imba))
             print("SST Result", sst_result)
             sst_results[(iters, fib, trees, imba, depth)].append(sst_result)
+        
+        with open("sst_results.pkl", "wb") as pkl:
+            pickle.dump(sst_results, pkl)
 
         for _ in range(repeats):
-            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, False))
+            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, True, False))
             print("DAM Result:", dam_result)
-            dam_results[(iters, fib, trees, imba, depth)].append(dam_result)
+            dam_no_opt[(iters, fib, trees, imba, depth)].append(dam_result)
 
-    # sst_result = run_sst(20, 10, 1000, 10, 20, 1, 1024, 3)
-    # dam_result1 = run_dam(20, 10, 1000, 10, 20, 1, 1024, 3, False)
-    # dam_result2 = run_dam(20, 10, 1000, 10, 20, 1, 1024, 3, True)
+        with open("dam_noopt_results.pkl", "wb") as pkl:
+            pickle.dump(sst_results, pkl)
+
+        for _ in range(repeats):
+            dam_result = parse_output(run_dam(fib, iters, depth, trees, 1, 1024, imba, True, True))
+            print("DAM Result:", dam_result)
+            dam_opt[(iters, fib, trees, imba, depth)].append(dam_result)
+        
+        with open("dam_opt_results.pkl", "wb") as pkl:
+            pickle.dump(sst_results, pkl)
