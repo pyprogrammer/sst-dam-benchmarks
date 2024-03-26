@@ -6,12 +6,11 @@ fn main() {
         .parent()
         .unwrap()
         .join("common");
-
     cxx_build::bridge("src/main.rs")
         .file(path.join("workloads.h"))
         .flag_if_supported("-std=c++14")
         .flag("-O3")
+        .flag(format!("-I{}", path.as_path().display()).as_str())
         .compile("bindings");
-
     println!("cargo:rerun-if-changed=src/main.rs");
 }
