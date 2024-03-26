@@ -6,8 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = {version = "4.4.8", features=["derive"]}
-dam = {version = "0.1.0", features=["dot"], default-features=false, git = "https://github.com/stanford-ppl/DAM-RS.git", branch="dev"}
+clap = { version = "4.4.8", features = ["derive"] }
+dam = { version = "0.1.0", git = "https://github.com/stanford-ppl/DAM-RS.git", branch = "master", default-features = false, features = [
+    "os-threads",
+] }
 cxx = "1.0.110"
 
 
