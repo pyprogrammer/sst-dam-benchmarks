@@ -140,7 +140,7 @@ if __name__ == "__main__":
         num_iters, fib_size, num_trees, imbalance, depths
     ):
 
-        print("Starting Iter:", num_iters, fib_size, num_trees, imbalance, depths)
+        print("Starting Iter:", iters, fib, trees, imba, depth)
         for _ in range(repeats):
             sst_result = parse_output(
                 run_sst(
