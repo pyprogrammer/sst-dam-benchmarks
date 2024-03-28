@@ -7,11 +7,10 @@ import pandas as pd
 import numpy as np
 import itertools
 import collections
+import argparse
 
 sst_path = pathlib.Path(__file__).parent.joinpath("sst")
 dam_path = pathlib.Path(__file__).parent.joinpath("dam")
-
-print(sst_path)
 
 
 def setup_sst():
@@ -28,7 +27,7 @@ def setup_sst():
 
 
 def setup_dam():
-    subprocess.run(["cargo", "update"])
+    subprocess.run(["cargo", "update"], cwd=dam_path, check=True)
     dam_job = subprocess.run(
         ["cargo", "build", "--profile", "release"],
         check=True,
@@ -125,6 +124,15 @@ imbalance = [0, 4]
 depths = [8, 10]
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-r", "--repeats", action="store", type=int, default=1, dest="repeats"
+    )
+    parser.add_argument(
+        "-c", "--chan-depth", action="store", type=int, default=4096, dest="chan_depth"
+    )
+    args = parser.parse_args()
+
     setup_sst()
     setup_dam()
 
@@ -134,8 +142,8 @@ if __name__ == "__main__":
 
     dam_results = {opt: collections.defaultdict(list) for opt in dam_opts}
 
-    repeats = 1
-    chan_depth = 4096
+    repeats = args.repeats
+    chan_depth = args.chan_depth
 
     for iters, fib, trees, imba, depth in itertools.product(
         num_iters, fib_size, num_trees, imbalance, depths
