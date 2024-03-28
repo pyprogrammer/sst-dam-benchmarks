@@ -171,7 +171,7 @@ if __name__ == "__main__":
                         chan_depth,
                         imba,
                         use_fifo,
-                        chan_opt,
+                        False,
                     )
                 )
                 print("DAM", use_fifo, dam_result)
