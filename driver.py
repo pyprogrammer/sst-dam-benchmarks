@@ -140,6 +140,7 @@ if __name__ == "__main__":
         num_iters, fib_size, num_trees, imbalance, depths
     ):
 
+        print("Starting Iter:", num_iters, fib_size, num_trees, imbalance, depths)
         for _ in range(repeats):
             sst_result = parse_output(
                 run_sst(
@@ -153,7 +154,7 @@ if __name__ == "__main__":
                     imba,
                 )
             )
-            print("SST Result", sst_result)
+            print("SST", sst_result)
             sst_results[(iters, fib, trees, imba, depth)].append(sst_result)
 
         with open("sst_results.pkl", "wb") as pkl:
