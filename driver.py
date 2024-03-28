@@ -28,6 +28,7 @@ def setup_sst():
 
 
 def setup_dam():
+    subprocess.run(["cargo", "update"])
     dam_job = subprocess.run(
         ["cargo", "build", "--profile", "release"],
         check=True,
