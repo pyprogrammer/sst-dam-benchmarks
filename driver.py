@@ -119,7 +119,7 @@ num_iters = [100000]
 fib_size = [16, 20]
 
 # step in chunks of 4
-num_trees = 1 << np.arange(1, int(np.ceil(np.log2(multiprocessing.cpu_count()))), 2)
+num_trees = [2, 8, 32]
 imbalance = [0, 4]
 depths = [8, 10]
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     sst_results = collections.defaultdict(list)
 
-    dam_opts = list(itertools.product([True, False], repeat=2))
+    dam_opts = [True, False]
 
     dam_results = {opt: collections.defaultdict(list) for opt in dam_opts}
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         with open("sst_results.pkl", "wb") as pkl:
             pickle.dump(sst_results, pkl)
 
-        for use_fifo, chan_opt in dam_opts:
+        for use_fifo in dam_opts:
             for _ in range(repeats):
                 dam_result = parse_output(
                     run_dam(
@@ -174,10 +174,10 @@ if __name__ == "__main__":
                         chan_opt,
                     )
                 )
-                print("DAM", use_fifo, chan_opt, dam_result)
-                dam_results[(use_fifo, chan_opt)][
-                    (iters, fib, trees, imba, depth)
-                ].append(dam_result)
+                print("DAM", use_fifo, dam_result)
+                dam_results[use_fifo][(iters, fib, trees, imba, depth)].append(
+                    dam_result
+                )
 
             with open("dam_results.pkl", "wb") as pkl:
                 pickle.dump(dam_results, pkl)
